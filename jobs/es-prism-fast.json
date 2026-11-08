@@ -1,0 +1,9 @@
+{
+  "input": {
+    "prompt": "A cinematic, realistic shot of two friends, a man and a woman, standing together on a sunny Madrid sidewalk. The man speaks with a Castilian accent: \"No voy a poder llegar a la cita de las cinco porque tengo mucho lío en la oficina.\" The woman, moving with a leisurely pace and speaking with a Castilian accent, replies: \"¿Qué tal si quedamos más tarde?\" The man, maintaining a Castilian accent, responds: \"Me parece genial, así me da tiempo a terminarlo todo con tranquilidad.\" The lighting is natural and soft, with a shallow depth of field focusing on the two friends as they interact in the urban setting.",
+    "model": "prism",
+    "mode": "fast",
+    "seconds": 12,
+    "seed": 20261108
+  }
+}
