@@ -1,0 +1,9 @@
+{
+  "input": {
+    "prompt": "Composition: A medium shot showing Man 1 and Woman 2 standing side-by-side in a modern office lounge area, both framed from the waist up.\nStyle: Realistic, natural-light look.\nLighting: Bright, soft daylight pouring in from large windows to the side during the late afternoon.\nScene: A contemporary office lounge with minimalist furniture, a few potted plants, and blurred workstations in the background.\nAction: Man 1 looks apologetic while checking his watch, Woman 2 listens attentively with a friendly expression, Man 1 smiles and nods in agreement.\nAudio: dialogue: Man 1 (Spanish, Castilian accent, natural pace): \"No voy a poder llegar a la cita de las cinco porque tengo mucho lío en la oficina.\", Woman 2 (Spanish, Castilian accent, natural pace): \"¿Qué tal si quedamos más tarde?\", Man 1 (Spanish, Castilian accent, natural pace): \"Me parece genial, así me da tiempo a terminarlo todo con tranquilidad.\"",
+    "model": "comfy",
+    "mode": "fast",
+    "seconds": 12,
+    "seed": 20261108
+  }
+}

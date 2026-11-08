@@ -1,0 +1,9 @@
+{
+  "input": {
+    "prompt": "Composition: Medium shot, profile view of Man 1 and Woman 2 sitting opposite each other at a kitchen table.\nStyle: realistic, natural-light look.\nLighting: Warm afternoon sunlight streaming through a side window, casting soft shadows across the room.\nScene: A cozy, modern kitchen with a wooden table, two chairs, and a partially blurred view of a tidy living area in the background.\nAction: Man 1 leans forward with a curious smile, resting his hands on the table; Woman 2 makes a modest gesture with her hands and offers a reassuring nod while speaking.\nAudio: dialogue: Man 1 (English, American, natural pace): \"How'd your first day of training go today?\", Woman 2 (English, American, natural pace): \"It went better than I expected.\", Man 1 (English, American, natural pace): \"That's great, sounds like you were worried for nothing!\"",
+    "model": "comfy",
+    "mode": "fast",
+    "seconds": 12,
+    "seed": 20261108
+  }
+}
