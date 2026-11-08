@@ -1,5 +1,5 @@
 {
-  "gpuTypeIds": ["NVIDIA A100 80GB PCIe", "NVIDIA A100-SXM4-80GB"],
+  "gpuTypeIds": ["NVIDIA RTX PRO 6000 Blackwell Server Edition", "NVIDIA RTX PRO 6000 Blackwell Workstation Edition"],
   "gpuCount": 1,
   "minCudaVersion": "13.0",
   "flashboot": true,
