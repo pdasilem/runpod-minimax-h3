@@ -10,7 +10,7 @@ POLL_S=5
 
 usage() {
     echo "usage: tools/bench.sh update <l40s|pro6000>" >&2
-    echo "       tools/bench.sh job <prism-fast|prism-standard|comfy-fast|comfy-standard>..." >&2
+    echo "       tools/bench.sh job <en|es>-<prism|comfy>-<fast|standard>..." >&2
     exit 2
 }
 

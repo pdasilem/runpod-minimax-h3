@@ -1,0 +1,9 @@
+{
+  "input": {
+    "prompt": "A cinematic medium shot of a man and a woman sitting at a table inside a sunlit, modern Brooklyn coffee shop with brick walls and large windows, both clearly visible in the frame and speaking with an American accent. A: \"I'm pretty bored today.\" B: \"How about we meet up later?\" A: \"Yeah, that sounds like a great idea.\"",
+    "model": "prism",
+    "mode": "standard",
+    "seconds": 12,
+    "seed": 20261108
+  }
+}
