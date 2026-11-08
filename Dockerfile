@@ -61,7 +61,7 @@ RUN chmod +x /opt/serverless/entrypoint.sh /opt/serverless/populate-volume.sh
 ENV COMFYUI_DIR="/workspace/runpod-slim/ComfyUI" \
     WORKFLOWS_DIR="/opt/workflows" \
     JOB_TIMEOUT_S="1800" \
-    MODEL_SET="prism" \
+    MODEL_SET="comfy" \
     VENV_SUFFIX="cu130"
 
 # Base image carries ENTRYPOINT ["/start.sh"] (pod mode) — a bare CMD would be
