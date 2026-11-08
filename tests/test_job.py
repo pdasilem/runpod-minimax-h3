@@ -7,10 +7,28 @@ def fixed_seed() -> int:
     return 42
 
 
-def test_defaults_seconds_to_twelve_and_draws_a_seed():
+def test_defaults_to_twelve_seconds_the_scene_frame_sparse_attention_and_a_drawn_seed():
     job = parse_job({"prompt": "a cat says hello", "model": "prism", "mode": "fast"}, fixed_seed)
 
-    assert job == Job(prompt="a cat says hello", model="prism", mode="fast", seconds=12, seed=42)
+    assert job == Job(prompt="a cat says hello", model="prism", mode="fast", seconds=12, seed=42, size="scene", sparse=True)
+
+
+def test_takes_the_native_frame_and_dense_attention_when_asked():
+    job = parse_job({"prompt": "p", "model": "prism", "mode": "fast", "size": "native", "sparse": False}, fixed_seed)
+
+    assert (job.size, job.sparse) == ("native", False)
+
+
+@pytest.mark.parametrize("size", ["", "4k", "Native", None, 1344])
+def test_rejects_an_unknown_size(size):
+    with pytest.raises(JobError, match="size"):
+        parse_job({"prompt": "p", "model": "prism", "mode": "fast", "size": size}, fixed_seed)
+
+
+@pytest.mark.parametrize("sparse", ["false", 0, 1, None])
+def test_rejects_sparse_that_is_not_a_boolean(sparse):
+    with pytest.raises(JobError, match="sparse"):
+        parse_job({"prompt": "p", "model": "prism", "mode": "fast", "sparse": sparse}, fixed_seed)
 
 
 @pytest.mark.parametrize("seconds", [8, 12, 15])

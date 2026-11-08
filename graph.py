@@ -3,8 +3,10 @@ from dataclasses import dataclass
 
 from job import Job
 
-FRAME_WIDTH = 1024
-FRAME_HEIGHT = 576
+FRAME_SIZES = {
+    "scene": (1024, 576),
+    "native": (1344, 768),
+}
 
 PRISM_UNET = "PRISM_DMAD_PDMD_int8.safetensors"
 COMFY_UNET = "minimax_h3_fl2va_pruned_int8_convrot.safetensors"
@@ -56,18 +58,29 @@ def without_lora(graph: dict) -> dict:
     return rest
 
 
+def without_sparse(graph: dict) -> dict:
+    source = graph["sparse"]["inputs"]["model"]
+    rest = {key: node for key, node in graph.items() if key != "sparse"}
+    rest["scheduler"]["inputs"]["model"] = source
+    rest["guider"]["inputs"]["model"] = source
+    return rest
+
+
 def build_graph(template: dict, job: Job) -> dict:
     preset = PRESETS[(job.model, job.mode)]
+    width, height = FRAME_SIZES[job.size]
     graph = copy.deepcopy(template)
     graph["unet"]["inputs"]["unet_name"] = preset.unet
     graph["scheduler"]["inputs"]["steps"] = preset.steps
     graph["scheduler"]["inputs"]["scheduler"] = preset.scheduler
     graph["sampler"]["inputs"]["sampler_name"] = preset.sampler
     graph["latent"]["inputs"]["prompt"] = job.prompt
-    graph["latent"]["inputs"]["width"] = FRAME_WIDTH
-    graph["latent"]["inputs"]["height"] = FRAME_HEIGHT
+    graph["latent"]["inputs"]["width"] = width
+    graph["latent"]["inputs"]["height"] = height
     graph["seconds"]["inputs"]["value"] = job.seconds
     graph["noise"]["inputs"]["noise_seed"] = job.seed
+    if not job.sparse:
+        graph = without_sparse(graph)
     if preset.lora is None:
         return without_lora(graph)
     graph["lora"]["inputs"]["lora_name"] = preset.lora

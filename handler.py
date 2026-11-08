@@ -148,7 +148,7 @@ async def handler(job: dict) -> dict:
     await ensure_comfy()
     prune_volume_outputs(VOLUME)
     prompt = build_graph(json.loads(WORKFLOW.read_text()), parsed)
-    print(f"[handler] job {job.get('id')}: model={parsed.model} mode={parsed.mode} seconds={parsed.seconds} seed={parsed.seed}", flush=True)
+    print(f"[handler] job {job.get('id')}: model={parsed.model} mode={parsed.mode} seconds={parsed.seconds} seed={parsed.seed} size={parsed.size} sparse={parsed.sparse}", flush=True)
     log_mark = COMFY_LOG.stat().st_size if COMFY_LOG.is_file() else 0
     started = time.time()
     history = await queue_and_wait(prompt)
@@ -165,6 +165,8 @@ async def handler(job: dict) -> dict:
         "mode": parsed.mode,
         "seconds": parsed.seconds,
         "seed": parsed.seed,
+        "size": parsed.size,
+        "sparse": parsed.sparse,
         "execution_s": round(elapsed, 1),
     }
 
