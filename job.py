@@ -3,6 +3,8 @@ from typing import Callable
 
 MODELS = ("prism", "comfy")
 MODES = ("fast", "standard")
+SIZES = ("scene", "native")
+SIZE_DEFAULT = "scene"
 SECONDS_LEAST = 8
 SECONDS_MOST = 15
 SECONDS_DEFAULT = 12
@@ -20,6 +22,8 @@ class Job:
     mode: str
     seconds: int
     seed: int
+    size: str = SIZE_DEFAULT
+    sparse: bool = True
 
 
 def is_integer(value: object) -> bool:
@@ -56,6 +60,19 @@ def seed_of(inputs: dict, draw_seed: Callable[[], int]) -> int:
     return seed
 
 
+def size_of(inputs: dict) -> str:
+    if "size" not in inputs:
+        return SIZE_DEFAULT
+    return choice_of(inputs, "size", SIZES)
+
+
+def sparse_of(inputs: dict) -> bool:
+    sparse = inputs.get("sparse", True)
+    if not isinstance(sparse, bool):
+        raise JobError("sparse must be true or false")
+    return sparse
+
+
 def parse_job(inputs: object, draw_seed: Callable[[], int]) -> Job:
     if not isinstance(inputs, dict):
         raise JobError("input must be an object")
@@ -65,4 +82,6 @@ def parse_job(inputs: object, draw_seed: Callable[[], int]) -> Job:
         mode=choice_of(inputs, "mode", MODES),
         seconds=seconds_of(inputs),
         seed=seed_of(inputs, draw_seed),
+        size=size_of(inputs),
+        sparse=sparse_of(inputs),
     )

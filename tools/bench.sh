@@ -10,7 +10,7 @@ POLL_S=5
 
 usage() {
     echo "usage: tools/bench.sh update <l40s|pro6000>" >&2
-    echo "       tools/bench.sh job <en|es>-<prism|comfy>-<fast|standard>..." >&2
+    echo "       tools/bench.sh job <name of a file in jobs/ without .json>..." >&2
     exit 2
 }
 
@@ -54,7 +54,7 @@ report() {
         "\($name): handler execution_s=\(.output.execution_s)"
         + " runpod executionTime_s=\((.executionTime // 0) / 1000)"
         + " delayTime_s=\((.delayTime // 0) / 1000)"
-        + " seed=\(.output.seed) -> \($file)"' "$status_file"
+        + " seed=\(.output.seed) size=\(.output.size) sparse=\(.output.sparse) -> \($file)"' "$status_file"
 }
 
 run_job() {
