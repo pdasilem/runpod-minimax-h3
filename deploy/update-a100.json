@@ -1,10 +1,6 @@
 {
-  "name": "mmh3-t2va-a100",
-  "templateId": "TEMPLATE_ID",
-  "computeType": "GPU",
   "gpuTypeIds": ["NVIDIA A100 80GB PCIe", "NVIDIA A100-SXM4-80GB"],
   "gpuCount": 1,
-  "networkVolumeId": "NETWORK_VOLUME_ID",
   "minCudaVersion": "13.0",
   "flashboot": true,
   "executionTimeoutMs": 1800000,

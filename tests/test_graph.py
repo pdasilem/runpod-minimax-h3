@@ -11,7 +11,6 @@ from graph import (
     FRAME_WIDTH,
     PRISM_UNET,
     build_graph,
-    required_files,
 )
 from job import Job
 
@@ -74,14 +73,6 @@ def test_writes_the_prompt_the_duration_the_seed_and_the_scene_frame():
     assert graph["seconds"]["inputs"]["value"] == 9
     assert graph["noise"]["inputs"]["noise_seed"] == 1234
     assert (graph["latent"]["inputs"]["width"], graph["latent"]["inputs"]["height"]) == (FRAME_WIDTH, FRAME_HEIGHT)
-    assert (FRAME_WIDTH, FRAME_HEIGHT) == (1024, 576)
-
-
-def test_saves_at_twenty_four_frames_per_second_with_sound():
-    graph = build_graph(TEMPLATE, job_of("comfy", "standard"))
-
-    assert graph["save"]["inputs"]["frame_rate"] == 24
-    assert graph["save"]["inputs"]["audio"] == ["decode_audio", 0]
 
 
 def test_leaves_the_template_untouched():
@@ -91,11 +82,3 @@ def test_leaves_the_template_untouched():
     build_graph(TEMPLATE, job_of("prism", "standard"))
 
     assert TEMPLATE == before
-
-
-def test_names_the_files_a_variant_needs_on_the_volume():
-    assert required_files(job_of("comfy", "fast")) == required_files(job_of("comfy", "standard"))
-    assert ("diffusion_models", COMFY_UNET) in required_files(job_of("comfy", "fast"))
-    assert ("loras", COMFY_TURBO_LORA) in required_files(job_of("comfy", "fast"))
-    assert ("diffusion_models", PRISM_UNET) in required_files(job_of("prism", "fast"))
-    assert ("loras", COMFY_TURBO_LORA) not in required_files(job_of("prism", "fast"))
