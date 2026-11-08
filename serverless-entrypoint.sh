@@ -35,34 +35,11 @@ runpod_volume:
   upscale_models: upscale_models
 YAML
 
-# sam_vit_b_01ec64.pth is a legacy-tar checkpoint — PyTorch >= 2.6 defaults
-# torch.load to weights_only=True which rejects it. Impact Pack's SAMLoader
-# calls segment_anything.build_sam → torch.load(f) with no override, so patch
-# the lib in place (baked /opt copy and venv both covered by the find roots).
-find /usr /opt -name build_sam.py -exec sed -i 's|torch\.load(f)|torch.load(f, weights_only=False)|' {} +
-
-# An early download of sam_vit_b (from dl.fbaipublicfiles.com) left a corrupt
-# tar on the volume — populate would skip it as "present". Check the exact
-# byte size of the known-good HF copy and force a re-download on mismatch.
-[ "$(stat -c%s /runpod-volume/models/sams/sam_vit_b_01ec64.pth 2>/dev/null)" != "375042383" ] && rm -f /runpod-volume/models/sams/sam_vit_b_01ec64.pth
-
 # Auto-populate the network volume on first boot (models-manifest.txt).
 # Concurrent cold workers serialize on a flock inside populate-volume.sh;
 # disable with VOLUME_AUTOPOPULATE=false.
 if [ "${VOLUME_AUTOPOPULATE:-true}" = "true" ]; then
-    /opt/serverless/populate-volume.sh || echo "entrypoint: volume populate failed — jobs may error on missing models" >&2
-fi
-
-# TensorRT engines: the *-TensorRT-Auto nodes compile engines lazily on first
-# use under models/tensorrt/ — which lives on ephemeral container disk, so
-# every cold worker would rebuild them (minutes). Redirect to the network
-# volume so the build happens once ever. Caveat: engines are arch-specific —
-# safe because the endpoint is pinned to one GPU pool (BLACKWELL_96).
-if [ -d /runpod-volume ]; then
-    mkdir -p /runpod-volume/models/tensorrt "$COMFYUI_DIR/models"
-    dest="$COMFYUI_DIR/models/tensorrt"
-    [ -d "$dest" ] && [ ! -L "$dest" ] && rm -rf "$dest"
-    ln -sfn /runpod-volume/models/tensorrt "$dest"
+    /opt/serverless/populate-volume.sh "${MODEL_SET:-}" || echo "entrypoint: volume populate failed for MODEL_SET=${MODEL_SET:-unset}; jobs report the missing models" >&2
 fi
 
 export PATH="$VENV_DIR/bin:$PATH"

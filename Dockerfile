@@ -19,18 +19,7 @@ RUN dl() { \
     git clone --depth 1 --branch "$branch" "https://github.com/$user/$repo.git" "/opt/comfyui-baked/custom_nodes/$dir"; \
   } && \
     cd /opt/comfyui-baked/custom_nodes && \
-    dl Kosinkadink ComfyUI-VideoHelperSuite main ComfyUI-VideoHelperSuite && \
-    dl yolain ComfyUI-Easy-Use main ComfyUI-Easy-Use && \
-    dl huchukato ComfyUI-QwenVL-Mod main ComfyUI-QwenVL-Mod && \
-    dl huchukato ComfyUI-RIFE-TensorRT-Auto master ComfyUI-RIFE-TensorRT-Auto && \
-    dl huchukato ComfyUI-Upscaler-TensorRT-Auto master ComfyUI-Upscaler-TensorRT-Auto && \
-    dl huchukato ComfyUI-TagForge v2.3.0 ComfyUI-TagForge && \
-    dl huchukato ComfyUI-PerfectVideoResolution master ComfyUI-PerfectVideoResolution && \
-    dl huchukato ComfyUI-MiniMaxH3-Director-Enhanced main ComfyUI-MiniMaxH3-Director-Enhanced && \
-    dl pixaroma ComfyUI-Pixaroma main ComfyUI-Pixaroma && \
-    dl kijai ComfyUI-KJNodes main ComfyUI-KJNodes && \
-    dl ltdrdata ComfyUI-Impact-Pack Main ComfyUI-Impact-Pack && \
-    dl ltdrdata ComfyUI-Impact-Subpack main ComfyUI-Impact-Subpack
+    dl Kosinkadink ComfyUI-VideoHelperSuite main ComfyUI-VideoHelperSuite
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -55,14 +44,15 @@ RUN bash -c 'cd /opt/comfyui-baked/custom_nodes && for node_dir in */; do \
 # Model dirs (empty — real models come from the network volume via
 # extra_model_paths.yaml written by the entrypoint)
 # ──────────────────────────────────────────────────────────────────────────────
-RUN mkdir -p /opt/comfyui-baked/models/{vae,vae_approx,diffusion_models,unet,text_encoders,clip_projections,loras,checkpoints,LLM,clip,clip_vision,ultralytics/bbox,sams}
+RUN mkdir -p /opt/comfyui-baked/models/{vae,diffusion_models,text_encoders,loras}
 
 ENV HF_TOKEN=""
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Serverless entrypoint + handler + workflow templates (API format)
 # ──────────────────────────────────────────────────────────────────────────────
-COPY handler.py /opt/serverless/handler.py
+COPY handler.py job.py graph.py delivery.py /opt/serverless/
+COPY workflows/t2va.json /opt/workflows/t2va.json
 COPY serverless-entrypoint.sh /opt/serverless/entrypoint.sh
 COPY populate-volume.sh /opt/serverless/populate-volume.sh
 COPY models-manifest.txt /opt/serverless/models-manifest.txt
@@ -71,6 +61,7 @@ RUN chmod +x /opt/serverless/entrypoint.sh /opt/serverless/populate-volume.sh
 ENV COMFYUI_DIR="/workspace/runpod-slim/ComfyUI" \
     WORKFLOWS_DIR="/opt/workflows" \
     JOB_TIMEOUT_S="1800" \
+    MODEL_SET="prism" \
     VENV_SUFFIX="cu130"
 
 # Base image carries ENTRYPOINT ["/start.sh"] (pod mode) — a bare CMD would be

@@ -8,7 +8,7 @@
     "runsOn": "GPU",
     "containerDiskInGb": 30,
     "gpuCount": 1,
-    "gpuIds": "BLACKWELL_96",
+    "gpuIds": "AMPERE_80,ADA_48_PRO,-NVIDIA L40,-NVIDIA RTX 6000 Ada Generation",
     "allowedCudaVersions": [
       "13.0",
       "13.1",
@@ -20,10 +20,23 @@
         "input": {
           "type": "boolean",
           "name": "Auto-download models",
-          "description": "Download missing models to the attached network volume at worker boot. Requires a \u2265160GB network volume attached to the endpoint \u2014 strongly recommended.",
+          "description": "Download missing models to the attached network volume at worker boot. Requires a 50GB network volume attached to the endpoint.",
           "default": true,
           "trueValue": "true",
           "falseValue": "false"
+        }
+      },
+      {
+        "key": "MODEL_SET",
+        "input": {
+          "name": "Model set",
+          "type": "string",
+          "description": "Diffusion model kept on the volume. Switching it downloads the new set and removes the other one at the next worker boot.",
+          "options": [
+            { "label": "PRISM", "value": "prism" },
+            { "label": "Comfy-Org base + turbo LoRA", "value": "comfy" }
+          ],
+          "default": "prism"
         }
       },
       {

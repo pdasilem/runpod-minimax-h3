@@ -1,0 +1,11 @@
+{
+  "name": "mmh3-t2va",
+  "imageName": "IMAGE_NAME",
+  "isServerless": true,
+  "containerDiskInGb": 30,
+  "env": {
+    "MODEL_SET": "prism",
+    "VOLUME_AUTOPOPULATE": "true",
+    "JOB_TIMEOUT_S": "1800"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "name": "mmh3-t2va-l40s",
+  "templateId": "TEMPLATE_ID",
+  "computeType": "GPU",
+  "gpuTypeIds": ["NVIDIA L40S"],
+  "gpuCount": 1,
+  "networkVolumeId": "NETWORK_VOLUME_ID",
+  "minCudaVersion": "13.0",
+  "flashboot": true,
+  "executionTimeoutMs": 1800000,
+  "idleTimeout": 60,
+  "workersMin": 0,
+  "workersMax": 1
+}

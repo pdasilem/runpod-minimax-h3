@@ -10,6 +10,15 @@
 #   HF_TOKEN   optional Hugging Face token for gated repos
 set -uo pipefail
 
+MODEL_SET="${1:-}"
+case "$MODEL_SET" in
+    prism|comfy) ;;
+    *)
+        echo "usage: populate-volume.sh <prism|comfy>" >&2
+        exit 2
+        ;;
+esac
+
 VOL_ROOT="${VOL_ROOT:-/runpod-volume}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MANIFEST="${MANIFEST:-$SCRIPT_DIR/models-manifest.txt}"
@@ -29,14 +38,22 @@ exec 9>"$VOL_ROOT/.populate.lock"
 flock 9
 
 echo "populate: free space on $VOL_ROOT: $(df -h "$VOL_ROOT" | awk 'NR==2{print $4" of "$2}')"
-total=$(grep -vc '^\s*\(#\|$\)' "$MANIFEST")
+total=$(awk -F'\t' -v set="$MODEL_SET" '$1 == "common" || $1 == set' "$MANIFEST" | wc -l)
 done_n=0
 mkdir -p "$M"
+echo "populate: set $MODEL_SET"
 
-while IFS=$'\t' read -r sub name url; do
-    case "$sub" in ''|\#*) continue;; esac
-    done_n=$((done_n + 1))
+while IFS=$'\t' read -r group sub name url; do
+    case "$group" in ''|\#*) continue;; esac
     dest="$M/$sub/$name"
+    if [ "$group" != "common" ] && [ "$group" != "$MODEL_SET" ]; then
+        if [ -f "$dest" ]; then
+            rm -f "$dest"
+            echo "populate: removed $name (set $group)"
+        fi
+        continue
+    fi
+    done_n=$((done_n + 1))
     if [ -f "$dest" ]; then
         echo "populate: [$done_n/$total] skip $name (present)"
         continue
