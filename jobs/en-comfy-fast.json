@@ -1,6 +1,6 @@
 {
   "input": {
-    "prompt": "A cinematic medium shot of a man and a woman sitting at a table inside a sunlit, modern Brooklyn coffee shop with brick walls and large windows, both clearly visible in the frame and speaking with an American accent. A: \"I'm pretty bored today.\" B: \"How about we meet up later?\" A: \"Yeah, that sounds like a great idea.\"",
+    "prompt": "A wide, cinematic shot of a sunlit neighborhood cafe interior. A young man and a woman are seated opposite each other at a wooden table, both clearly visible in the frame. The man speaks with an American accent, \"How'd your first day of training go today?\" The woman speaks with an American accent, \"It went better than I expected.\" The man then speaks with an American accent, \"That's great, sounds like you were worried for nothing!\"",
     "model": "comfy",
     "mode": "fast",
     "seconds": 12,
