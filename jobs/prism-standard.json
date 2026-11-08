@@ -1,9 +1,0 @@
-{
-  "input": {
-    "prompt": "A young woman stands at a cafe counter, smiles at the barista and says clearly in English: \"Could I get a flat white, please?\" The barista nods and answers: \"Sure, coming right up.\" Natural daylight, handheld medium shot, realistic, ambient cafe sound.",
-    "model": "prism",
-    "mode": "standard",
-    "seconds": 12,
-    "seed": 20261108
-  }
-}
