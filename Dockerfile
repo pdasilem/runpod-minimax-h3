@@ -1,13 +1,12 @@
-# runpod-minimax-h3 — MiniMax H3 INT8 serverless worker (CUDA 13.0)
-#
-# - Comfy-Org INT8 ConvRot DiTs + Qwen3-VL-32B Heretic NVFP4 TE + lightx2v
-#   turbo LoRAs, loaded from the network volume (~100GB, needs a 48GB+ GPU)
-# - Missing volume files are auto-downloaded at worker boot from
-#   models-manifest.txt (populate-volume.sh, VOLUME_AUTOPOPULATE=false to skip)
-# - runpod serverless handler drives ComfyUI per-job (handler.py)
-#
+FROM huchukato/comfyui-base:cu130@sha256:89a47a4a46c0e79ff8d2cdd762ebfc56924e98cd03a1802e2cfeb567b28857c9
 
-FROM huchukato/comfyui-base:cu130
+ENV MODELS_DIR=/models
+COPY models-manifest.txt fetch-model.sh /opt/cloudrun/
+RUN bash /opt/cloudrun/fetch-model.sh /opt/cloudrun/models-manifest.txt text_encoders qwen3vl_32b_heretic_minimax_h3_nvfp4.safetensors
+RUN bash /opt/cloudrun/fetch-model.sh /opt/cloudrun/models-manifest.txt vae minimax_h3_video_vae_fp16.safetensors
+RUN bash /opt/cloudrun/fetch-model.sh /opt/cloudrun/models-manifest.txt vae minimax_h3_audio_vae_fp32.safetensors
+RUN bash /opt/cloudrun/fetch-model.sh /opt/cloudrun/models-manifest.txt diffusion_models minimax_h3_fl2va_pruned_int8_convrot.safetensors
+RUN bash /opt/cloudrun/fetch-model.sh /opt/cloudrun/models-manifest.txt loras minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Custom nodes — same stack as the pod image
@@ -40,23 +39,10 @@ RUN bash -c 'cd /opt/comfyui-baked/custom_nodes && for node_dir in */; do \
     pip install --no-cache-dir 'runpod>=1.12' requests boto3 "huggingface_hub[cli]" hf_transfer && \
     pip cache purge
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Model dirs (empty — real models come from the network volume via
-# extra_model_paths.yaml written by the entrypoint)
-# ──────────────────────────────────────────────────────────────────────────────
-RUN mkdir -p /opt/comfyui-baked/models/{vae,diffusion_models,text_encoders,loras}
-
 ENV HF_TOKEN=""
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Serverless entrypoint + handler + workflow templates (API format)
-# ──────────────────────────────────────────────────────────────────────────────
-COPY handler.py job.py graph.py delivery.py /opt/serverless/
+COPY handler.py job.py graph.py delivery.py cloudrun_job.py /opt/serverless/
 COPY workflows/t2va.json /opt/workflows/t2va.json
-COPY serverless-entrypoint.sh /opt/serverless/entrypoint.sh
-COPY populate-volume.sh /opt/serverless/populate-volume.sh
-COPY models-manifest.txt /opt/serverless/models-manifest.txt
-RUN chmod +x /opt/serverless/entrypoint.sh /opt/serverless/populate-volume.sh
 
 ENV COMFYUI_DIR="/workspace/runpod-slim/ComfyUI" \
     WORKFLOWS_DIR="/opt/workflows" \
@@ -64,7 +50,10 @@ ENV COMFYUI_DIR="/workspace/runpod-slim/ComfyUI" \
     MODEL_SET="comfy" \
     VENV_SUFFIX="cu130"
 
-# Base image carries ENTRYPOINT ["/start.sh"] (pod mode) — a bare CMD would be
-# passed to it as args and the runpod handler would never start. Override the
-# entrypoint so the container runs the serverless handler directly.
-ENTRYPOINT ["/opt/serverless/entrypoint.sh"]
+RUN mkdir -p "$COMFYUI_DIR" && cp -a /opt/comfyui-baked/. "$COMFYUI_DIR/" \
+    && printf 'cloudrun:\n  base_path: /models\n  diffusion_models: diffusion_models\n  loras: loras\n  vae: vae\n  text_encoders: text_encoders\n' \
+        > "$COMFYUI_DIR/extra_model_paths.yaml"
+
+ENV PATH="/workspace/runpod-slim/ComfyUI/.venv-cu130/bin:${PATH}"
+WORKDIR /opt/serverless
+ENTRYPOINT ["python3", "/opt/serverless/cloudrun_job.py"]

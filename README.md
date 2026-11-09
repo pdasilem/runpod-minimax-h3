@@ -70,3 +70,13 @@ A production-ready [Runpod Serverless](https://docs.runpod.io/serverless/overvie
 ## Companion stack
 
 - 🖼 Image sibling: [huchukato/runpod-qwen21](https://github.com/huchukato/runpod-qwen21) (Qwen Image 2.1 T2I/Edit + Pony)
+
+## Cloud Run Job
+
+On the branch `cloudrun` the `Dockerfile` carries the comfy model set right after the base image, one file a layer, the addresses taken from `models-manifest.txt`. The job reads `PROMPT`, `MODEL`, `MODE` and `CLIP_SECONDS`, renders with the same graph and writes the clip to `gs://$RENDER_BUCKET/renders/$CLOUD_RUN_EXECUTION.mp4`; a refused or empty render ends with exit 1.
+
+```
+docker build -t us-central1-docker.pkg.dev/sayvibe-app/registry/video-worker:$(git rev-parse --short HEAD) .
+gcloud auth configure-docker us-central1-docker.pkg.dev
+docker push us-central1-docker.pkg.dev/sayvibe-app/registry/video-worker:$(git rev-parse --short HEAD)
+```
