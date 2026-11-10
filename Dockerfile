@@ -8,38 +8,17 @@ RUN bash /opt/cloudrun/fetch-model.sh /opt/cloudrun/models-manifest.txt vae mini
 RUN bash /opt/cloudrun/fetch-model.sh /opt/cloudrun/models-manifest.txt diffusion_models minimax_h3_fl2va_pruned_int8_convrot.safetensors
 RUN bash /opt/cloudrun/fetch-model.sh /opt/cloudrun/models-manifest.txt loras minimax_h3_fl2v_turbo_8step_v1.0_comfyui_bf16.safetensors
 
-# ──────────────────────────────────────────────────────────────────────────────
-# Custom nodes — same stack as the pod image
-# ──────────────────────────────────────────────────────────────────────────────
 ENV GIT_TERMINAL_PROMPT=0
-RUN dl() { \
-    local user="$1" repo="$2" branch="${3:-main}" dir="$4"; \
-    echo "Cloning $user/$repo ($branch) -> $dir"; \
-    git clone --depth 1 --branch "$branch" "https://github.com/$user/$repo.git" "/opt/comfyui-baked/custom_nodes/$dir"; \
-  } && \
-    cd /opt/comfyui-baked/custom_nodes && \
-    dl Kosinkadink ComfyUI-VideoHelperSuite main ComfyUI-VideoHelperSuite
+RUN git clone --depth 1 --branch main https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git \
+        /opt/comfyui-baked/custom_nodes/ComfyUI-VideoHelperSuite
 
-
-# ──────────────────────────────────────────────────────────────────────────────
-# Requirements + runpod serverless SDK
-# ──────────────────────────────────────────────────────────────────────────────
-# libgl1/libglib2.0-0: opencv-python (VideoHelperSuite) fails to import without
-# them → the whole pack never registers → missing_node_type on VHS_* nodes.
 RUN apt-get update && apt-get install -y --no-install-recommends libgl1 libglib2.0-0 \
     && rm -rf /var/lib/apt/lists/*
 
-RUN bash -c 'cd /opt/comfyui-baked/custom_nodes && for node_dir in */; do \
-        if [ -f "$node_dir/requirements.txt" ]; then \
-            echo "Installing requirements for $node_dir..." && \
-            pip install --no-cache-dir -r "$node_dir/requirements.txt" || echo "Failed to install requirements for $node_dir"; \
-        fi; \
-    done' && \
-    pip install --no-cache-dir --no-deps "transformers>=5.2.0" && \
-    pip install --no-cache-dir 'runpod>=1.12' requests boto3 "huggingface_hub[cli]" hf_transfer && \
-    pip cache purge
-
-ENV HF_TOKEN=""
+RUN pip install --no-cache-dir -r /opt/comfyui-baked/custom_nodes/ComfyUI-VideoHelperSuite/requirements.txt \
+    && pip install --no-cache-dir --no-deps "transformers>=5.2.0" \
+    && pip install --no-cache-dir 'runpod>=1.12' \
+    && pip cache purge
 
 COPY handler.py job.py graph.py delivery.py cloudrun_job.py /opt/serverless/
 COPY workflows/t2va.json /opt/workflows/t2va.json
@@ -47,8 +26,7 @@ COPY workflows/t2va.json /opt/workflows/t2va.json
 ENV COMFYUI_DIR="/workspace/runpod-slim/ComfyUI" \
     WORKFLOWS_DIR="/opt/workflows" \
     JOB_TIMEOUT_S="1800" \
-    MODEL_SET="comfy" \
-    VENV_SUFFIX="cu130"
+    MODEL_SET="comfy"
 
 RUN mkdir -p "$COMFYUI_DIR" && cp -a /opt/comfyui-baked/. "$COMFYUI_DIR/" \
     && printf 'cloudrun:\n  base_path: /models\n  diffusion_models: diffusion_models\n  loras: loras\n  vae: vae\n  text_encoders: text_encoders\n' \
