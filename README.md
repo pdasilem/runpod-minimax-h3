@@ -73,7 +73,7 @@ A production-ready [Runpod Serverless](https://docs.runpod.io/serverless/overvie
 
 ## Cloud Run Job
 
-On the branch `cloudrun` the `Dockerfile` carries the comfy model set right after the base image, one file a layer, the addresses taken from `models-manifest.txt`. The job reads `PROMPT`, `MODEL`, `MODE` and `CLIP_SECONDS`, renders with the same graph and writes the clip to `gs://$RENDER_BUCKET/renders/$CLOUD_RUN_EXECUTION.mp4`; a refused or empty render ends with exit 1.
+On the branch `cloudrun` the `Dockerfile` copies the base image without TensorRT, llama.cpp and ComfyUI-Manager into one layer and carries no models. The job reads `PROMPT`, `MODEL`, `MODE` and `CLIP_SECONDS`, downloads the files of the model from `gs://$MODELS_BUCKET/minimax-h3/<folder>/<file>` into `/models` while ComfyUI boots, renders with the same graph and writes the clip to `gs://$RENDER_BUCKET/renders/$CLOUD_RUN_EXECUTION.mp4`; a refused or empty render or a failed download ends with exit 1.
 
 ```
 docker build -t us-central1-docker.pkg.dev/sayvibe-app/registry/video-worker:$(git rev-parse --short HEAD) .

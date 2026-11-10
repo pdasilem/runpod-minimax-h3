@@ -1,14 +1,24 @@
 import asyncio
 import base64
 import json
+import multiprocessing
 import os
 import sys
 import threading
+import time
 import urllib.parse
 import urllib.request
 
-import handler
+from google.cloud import storage
+from google.cloud.storage import transfer_manager
 
+import handler
+from graph import required_files
+from job import JobError, parse_job
+
+MODELS_PREFIX = "minimax-h3"
+DOWNLOAD_CHUNK = 64 * 1024 * 1024
+DOWNLOAD_WORKERS = 16
 METADATA_TOKEN = "http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token"
 UPLOAD = "https://storage.googleapis.com/upload/storage/v1/b/{bucket}/o?uploadType=media&name={name}"
 RENDER_PREFIX = "renders/"
@@ -42,11 +52,38 @@ def job_input() -> dict:
     }
 
 
+def fetch_models(bucket_name: str, files: list) -> None:
+    bucket = storage.Client().bucket(bucket_name)
+    for folder, name in files:
+        target = handler.MODELS_ON_VOLUME / folder / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        started = time.time()
+        blob = bucket.blob(f"{MODELS_PREFIX}/{folder}/{name}")
+        transfer_manager.download_chunks_concurrently(
+            blob, str(target), chunk_size=DOWNLOAD_CHUNK, max_workers=DOWNLOAD_WORKERS
+        )
+        print(f"[cloudrun] {folder}/{name}: {blob.size} bytes in {time.time() - started:.1f}s", flush=True)
+
+
 def main() -> int:
     execution = os.environ["CLOUD_RUN_EXECUTION"]
     bucket = os.environ["RENDER_BUCKET"]
+    inputs = job_input()
+    try:
+        files = required_files(parse_job(inputs, lambda: 0))
+    except JobError as refused:
+        print(f"[cloudrun] the render was refused: {refused}", file=sys.stderr, flush=True)
+        return 1
+    started = time.time()
+    fetcher = multiprocessing.Process(target=fetch_models, args=(os.environ["MODELS_BUCKET"], files))
+    fetcher.start()
     threading.Thread(target=handler.boot_in_background, daemon=True).start()
-    result = asyncio.run(handler.handler({"id": execution, "input": job_input()}))
+    fetcher.join()
+    if fetcher.exitcode != 0:
+        print(f"[cloudrun] the models were not fetched, exit code {fetcher.exitcode}", file=sys.stderr, flush=True)
+        return 1
+    print(f"[cloudrun] models fetched in {time.time() - started:.1f}s", flush=True)
+    result = asyncio.run(handler.handler({"id": execution, "input": inputs}))
     if "error" in result:
         print(f"[cloudrun] the render was refused: {result['error']}", file=sys.stderr, flush=True)
         return 1
