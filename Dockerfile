@@ -28,7 +28,8 @@ ENV COMFYUI_DIR="/workspace/runpod-slim/ComfyUI" \
     JOB_TIMEOUT_S="1800" \
     MODEL_SET="comfy"
 
-RUN mkdir -p "$COMFYUI_DIR" && cp -a /opt/comfyui-baked/. "$COMFYUI_DIR/" \
+RUN rm -rf /opt/comfyui-baked/custom_nodes/ComfyUI-Manager \
+    && mkdir -p "$COMFYUI_DIR" && cp -a /opt/comfyui-baked/. "$COMFYUI_DIR/" \
     && printf 'cloudrun:\n  base_path: /models\n  diffusion_models: diffusion_models\n  loras: loras\n  vae: vae\n  text_encoders: text_encoders\n' \
         > "$COMFYUI_DIR/extra_model_paths.yaml"
 
