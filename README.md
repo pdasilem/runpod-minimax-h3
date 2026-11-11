@@ -73,10 +73,14 @@ A production-ready [Runpod Serverless](https://docs.runpod.io/serverless/overvie
 
 ## Cloud Run Job
 
-On the branch `cloudrun` the `Dockerfile` copies the base image without TensorRT, llama.cpp and ComfyUI-Manager into one layer and carries no models. The job reads `PROMPT`, `MODEL`, `MODE` and `CLIP_SECONDS`, downloads the files of the model from `gs://$MODELS_BUCKET/minimax-h3/<folder>/<file>` into `/models` while ComfyUI boots, renders with the same graph and writes the clip to `gs://$RENDER_BUCKET/renders/$CLOUD_RUN_EXECUTION.mp4`; a refused or empty render or a failed download ends with exit 1.
+On the branch `cloudrun` the `Dockerfile` copies the base image without TensorRT, llama.cpp and ComfyUI-Manager into one layer and carries no models and no Python packages: `/usr/local/lib/python3.12/dist-packages` is a link to `/runtime/dist-packages`. The stage `runtime` holds the packages and is exported as an archive to `gs://sayvibe-models/minimax-h3/runtime/<tag>.tar`, the tag being the `RUNTIME_TAG` of the image. The job reads `PROMPT`, `MODEL`, `MODE` and `CLIP_SECONDS`, downloads `gs://$MODELS_BUCKET/$RUNTIME_ARCHIVE` into `/runtime` and unpacks it, then downloads the files of the model from `gs://$MODELS_BUCKET/minimax-h3/<folder>/<file>` into `/models` while ComfyUI boots, renders with the same graph and writes the clip to `gs://$RENDER_BUCKET/renders/$CLOUD_RUN_EXECUTION.mp4`; a missing archive, a refused or empty render or a failed download ends with exit 1.
 
 ```
-docker build -t us-central1-docker.pkg.dev/sayvibe-app/registry/video-worker:$(git rev-parse --short HEAD) .
+TAG=$(git rev-parse --short HEAD)
+docker build --build-arg RUNTIME_TAG=$TAG -t us-central1-docker.pkg.dev/sayvibe-app/registry/video-worker:$TAG .
+docker build --target runtime --output type=tar,dest=$HOME/video-worker-runtime-$TAG.tar .
+gcloud storage cp $HOME/video-worker-runtime-$TAG.tar gs://sayvibe-models/minimax-h3/runtime/$TAG.tar
+rm $HOME/video-worker-runtime-$TAG.tar
 gcloud auth configure-docker us-central1-docker.pkg.dev
-docker push us-central1-docker.pkg.dev/sayvibe-app/registry/video-worker:$(git rev-parse --short HEAD)
+docker push us-central1-docker.pkg.dev/sayvibe-app/registry/video-worker:$TAG
 ```
