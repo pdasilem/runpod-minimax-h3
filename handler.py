@@ -12,7 +12,16 @@ from pathlib import Path
 
 import runpod
 
-from delivery import collect_new_files, collect_outputs, prune_volume_outputs
+from delivery import (
+    claimed,
+    collect_new_files,
+    collect_outputs,
+    drop_claim,
+    keep_result,
+    prune_volume_outputs,
+    result_of,
+    submission_directory,
+)
 from graph import build_graph, required_files
 from job import SEED_LIMIT, JobError, parse_job
 
@@ -134,19 +143,60 @@ def health() -> dict:
     }
 
 
+def submission_of(inputs: dict) -> str | None:
+    value = inputs.get("submission_id")
+    if value is None:
+        return None
+    try:
+        return str(uuid.UUID(str(value)))
+    except ValueError as exc:
+        raise JobError("submission_id must be a UUID") from exc
+
+
+async def rendered_by_the_first(directory: Path) -> dict | None:
+    deadline = time.time() + JOB_TIMEOUT_S
+    while time.time() < deadline:
+        result = await asyncio.to_thread(result_of, directory)
+        if result is not None:
+            print(f"[handler] {directory.name} is rendered already, the clip is given again", flush=True)
+            return result
+        if not directory.is_dir():
+            return None
+        await asyncio.sleep(HISTORY_POLL_S)
+    return {"error": f"{directory.name} is still rendering after {JOB_TIMEOUT_S}s"}
+
+
 async def handler(job: dict) -> dict:
     inputs = job.get("input") or {}
     if isinstance(inputs, dict) and inputs.get("action") == "health":
         return health()
     try:
         parsed = parse_job(inputs, lambda: random.randrange(SEED_LIMIT))
+        submission = submission_of(inputs)
     except JobError as exc:
         return {"error": str(exc)}
     absent = missing_files(parsed)
     if absent:
         return {"error": f"model {parsed.model} is not on the volume, missing: {', '.join(absent)}; set MODEL_SET={parsed.model} and restart the worker"}
-    await ensure_comfy()
     prune_volume_outputs(VOLUME)
+    if submission is None:
+        return await rendered(job, parsed)
+    directory = submission_directory(VOLUME, submission)
+    while not claimed(directory):
+        result = await rendered_by_the_first(directory)
+        if result is not None:
+            return result
+    try:
+        result = await rendered(job, parsed)
+    except BaseException:
+        drop_claim(directory)
+        raise
+    await asyncio.to_thread(keep_result, directory, result)
+    return result
+
+
+async def rendered(job: dict, parsed) -> dict:
+    await ensure_comfy()
     prompt = build_graph(json.loads(WORKFLOW.read_text()), parsed)
     print(f"[handler] job {job.get('id')}: model={parsed.model} mode={parsed.mode} seconds={parsed.seconds} seed={parsed.seed} size={parsed.size} sparse={parsed.sparse}", flush=True)
     log_mark = COMFY_LOG.stat().st_size if COMFY_LOG.is_file() else 0

@@ -1,4 +1,5 @@
 import base64
+import json
 import os
 import shutil
 import time
@@ -14,6 +15,8 @@ S3_URL_TTL_S = int(os.environ.get("S3_URL_TTL_S", "3600"))
 OUTPUT_KEYS = ("images", "gifs", "videos")
 MEDIA_SUFFIXES = (".mp4", ".webm", ".gif", ".wav", ".mp3", ".flac", ".png", ".jpg", ".jpeg", ".webp")
 DAY_S = 86400
+SUBMISSION_PREFIX = "submission-"
+RESULT = "result.json"
 
 
 def s3_config_of(job: dict) -> dict | None:
@@ -89,6 +92,34 @@ def collect_new_files(output_dir: Path, since_ts: float, job: dict) -> list:
         for p in files
         if p.suffix.lower() in MEDIA_SUFFIXES
     ]
+
+
+def submission_directory(volume: Path, submission: str) -> Path:
+    return volume / S3_PREFIX / f"{SUBMISSION_PREFIX}{submission}"
+
+
+def claimed(directory: Path) -> bool:
+    directory.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        directory.mkdir()
+        return True
+    except FileExistsError:
+        return False
+
+
+def keep_result(directory: Path, result: dict) -> None:
+    written = directory / f"{RESULT}.part"
+    written.write_text(json.dumps(result))
+    written.replace(directory / RESULT)
+
+
+def result_of(directory: Path) -> dict | None:
+    kept = directory / RESULT
+    return json.loads(kept.read_text()) if kept.is_file() else None
+
+
+def drop_claim(directory: Path) -> None:
+    shutil.rmtree(directory, ignore_errors=True)
 
 
 def prune_volume_outputs(volume: Path) -> None:
