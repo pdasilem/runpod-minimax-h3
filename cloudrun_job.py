@@ -8,10 +8,13 @@ import subprocess
 import sys
 import threading
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
+from typing import TypeVar
 
 from graph import required_files
 from job import JobError, parse_job
@@ -26,9 +29,36 @@ RENDER_PREFIX = "renders/"
 UPLOAD_TIMEOUT_S = 300
 DOWNLOAD_TIMEOUT_S = 300
 TOKEN_TIMEOUT_S = 10
+NETWORK_ATTEMPTS = 5
+NETWORK_PAUSE_S = 5
+SERVER_ERROR = 500
+TOO_MANY_REQUESTS = 429
+T = TypeVar("T")
 RUNTIME_DIR = Path("/runtime")
 RUNTIME_ARCHIVE = RUNTIME_DIR / "runtime.tar"
 SITE_PACKAGES = "/usr/local/lib/python3.12/dist-packages"
+
+
+def retriable(failed: OSError) -> bool:
+    if isinstance(failed, urllib.error.HTTPError):
+        return failed.code >= SERVER_ERROR or failed.code == TOO_MANY_REQUESTS
+    return True
+
+
+def with_retries(action: Callable[[], T]) -> T:
+    for attempt in range(1, NETWORK_ATTEMPTS):
+        try:
+            return action()
+        except OSError as failed:
+            if not retriable(failed):
+                raise
+            print(
+                f"[cloudrun] network attempt {attempt} of {NETWORK_ATTEMPTS} failed: {failed}",
+                file=sys.stderr,
+                flush=True,
+            )
+            time.sleep(NETWORK_PAUSE_S)
+    return action()
 
 
 def access_token() -> str:
@@ -61,15 +91,15 @@ def fetch_range(url: str, token: str, descriptor: int, start: int, end: int) -> 
 
 def fetch_runtime(bucket: str, name: str) -> None:
     started = time.time()
-    token = access_token()
+    token = with_retries(access_token)
     url = object_url(bucket, name)
-    size = object_size(url, token)
+    size = with_retries(lambda: object_size(url, token))
     starts = range(0, size, DOWNLOAD_CHUNK)
     descriptor = os.open(RUNTIME_ARCHIVE, os.O_WRONLY | os.O_CREAT | os.O_TRUNC)
     try:
         with ThreadPoolExecutor(DOWNLOAD_WORKERS) as pool:
             ranges = [(start, min(start + DOWNLOAD_CHUNK, size) - 1) for start in starts]
-            list(pool.map(lambda piece: fetch_range(url, token, descriptor, *piece), ranges))
+            list(pool.map(lambda piece: with_retries(lambda: fetch_range(url, token, descriptor, *piece)), ranges))
     finally:
         os.close(descriptor)
     print(f"[cloudrun] gs://{bucket}/{name}: {size} bytes in {time.time() - started:.1f}s", flush=True)
