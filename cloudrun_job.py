@@ -134,6 +134,7 @@ def job_input() -> dict:
         "model": os.environ["MODEL"],
         "mode": os.environ["MODE"],
         "seconds": int(os.environ["CLIP_SECONDS"]),
+        "size": os.environ["SIZE"],
     }
 
 
